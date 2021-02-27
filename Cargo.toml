@@ -1,10 +1,11 @@
 [package]
 name = "lakichain"
 version = "0.1.0"
-authors = ["Lakinator <SchalkLukas20@gmail.com>"]
+authors = ["Lukas Schalk <SchalkLukas20@gmail.com>"]
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "Implementation of a proof-of-work blockchain to understand how they work"
+repository = "https://github.com/Lakinator/Lakichain.git"
+keywords = ["blockchain", "cryptocurrency"]
 
 [dependencies]
 sha2 = "^0.9"
