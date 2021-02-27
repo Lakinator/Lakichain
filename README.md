@@ -1,5 +1,4 @@
 # Lakichain
-My own implementation of a proof-of-work blockchain to understand how they work
 
 Lakichain is a proof-of-work blockchain which contains blocks of transactions consisting of the currency ``` Lakicoin ```
 - There is a finite number of transactions per block ``` MAX_TRANSACTIONS_PER_BLOCK ```
