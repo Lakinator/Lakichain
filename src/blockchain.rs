@@ -163,6 +163,7 @@ impl Lakichain {
     /// Add block to the chain that a miner mined
     /// - ``` Ok ``` -> size of chain
     /// - ``` Err ``` -> error message
+    /// - Note: pending blocks with outdated index get removed here
     ///
     pub fn add_block(
         &mut self,
@@ -170,34 +171,47 @@ impl Lakichain {
         nonce: Nonce,
         miner_address: &String,
     ) -> Result<usize, String> {
-        // search through blocks that the miner requested
-        for (pos, val) in self.pending_blocks.iter().enumerate() {
-            if &val.1 == miner_address && val.0.index == index {
-                let mut bl = val.0.clone();
-                bl.nonce = nonce;
+        let last_index: usize = self.last_block().index;
 
-                if Lakichain::is_valid_hash(&bl.hash()) {
-                    // add block and remove it from pending block list
-                    self.pending_blocks.remove(pos);
+        // remove outdated blocks
+        // -> only pending blocks remain which index is one more than the current latest block on the chain
+        self.pending_blocks.retain(|(pending_block, _miner)| {
+            return pending_block.index == last_index + 1;
+        });
 
-                    // only push to chain if there isn't someone else who already mined this block
-                    if self.last_block().index < bl.index {
-                        self.chain.push(bl);
-
+        // is the given index outdatet?
+        if index == self.last_block().index + 1 {
+            // look for the right pending block
+            let mut i: usize = 0;
+            for (pending_block, miner) in &self.pending_blocks {
+                if miner == miner_address && pending_block.index == index {
+                    let mut block_clone = pending_block.clone();
+                    block_clone.nonce = nonce;
+                    // test if the supplied nonce produces a valid hash
+                    if Lakichain::is_valid_hash(&block_clone.hash()) {
+                        // push block to the chain and remove it from the pending list
+                        self.chain.push(block_clone);
+                        self.pending_blocks.remove(i);
                         match self.validate_chain() {
                             Ok(len) => return Ok(len),
                             Err(index) => {
-                                return Err(format!("Invalid chain starting at {}", index))
+                                return Err(format!("Invalid chain starting at {}", index));
                             }
                         }
                     } else {
                         return Err(format!(
-                            "Block with index {} is already mined and was added to the chain",
-                            index
+                            "The nonce {} doesn't produce a valid hash for block {}",
+                            nonce, index
                         ));
                     }
                 }
+                i += 1;
             }
+        } else {
+            return Err(format!(
+                "Block with index {} was already mined and added to the chain",
+                index
+            ));
         }
 
         return Err(String::from("Pending block not found"));

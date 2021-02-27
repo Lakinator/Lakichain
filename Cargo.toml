@@ -1,6 +1,6 @@
 [package]
 name = "lakichain"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Lukas Schalk <SchalkLukas20@gmail.com>"]
 edition = "2018"
 description = "Implementation of a proof-of-work blockchain to understand how they work"

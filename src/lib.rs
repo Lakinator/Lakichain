@@ -32,7 +32,7 @@ mod tests {
             &String::from("Transaction 1"),
             5,
             1,
-            &private_key_lukas,
+            &private_key_miner,
         ) {
             Ok((transaction, signature)) => {
                 lchain.add_transaction(&transaction, &signature);
