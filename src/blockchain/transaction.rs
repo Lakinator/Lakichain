@@ -98,7 +98,7 @@ impl Transaction {
     pub fn from_json(json: &String) -> Result<Transaction, String> {
         match serde_json::from_str::<Transaction>(json.as_str()) {
             Ok(tx) => return Ok(tx),
-            Err(_) => return Err(String::from("Error while parsing json")),
+            Err(e) => return Err(format!("Error while parsing json: {}", e)),
         }
     }
 

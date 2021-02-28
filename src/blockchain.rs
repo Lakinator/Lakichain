@@ -331,7 +331,6 @@ impl Lakichain {
         for block in &self.chain {
             for block_tx in &block.transactions {
                 if block_tx == tx {
-                    println!("Block {}: {:?} == {:?}", block.index, block_tx, tx);
                     return true;
                 }
             }
@@ -459,7 +458,7 @@ impl Lakichain {
     pub fn from_json(json: &String) -> Result<Lakichain, String> {
         match serde_json::from_str::<Lakichain>(json.as_str()) {
             Ok(chain) => return Ok(chain),
-            Err(_) => return Err(String::from("Error while parsing json")),
+            Err(e) => return Err(format!("Error while parsing json: {}", e)),
         }
     }
 

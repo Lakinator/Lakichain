@@ -57,7 +57,7 @@ impl Block {
     pub fn from_json(json: &String) -> Result<Block, String> {
         match serde_json::from_str::<Block>(json.as_str()) {
             Ok(bl) => return Ok(bl),
-            Err(_) => return Err(String::from("Error while parsing json")),
+            Err(e) => return Err(format!("Error while parsing json: {}", e)),
         }
     }
 
