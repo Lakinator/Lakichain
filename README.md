@@ -11,7 +11,8 @@ a specified amount of ``` 0's ``` (``` MINING_DIFFICULTY ```) at the start. The 
 The transactions are based on public/private key cryptography. They get signed and verified with the ``` ed25519 ``` algorithm using the ring crate
 
 ### How transactions work
-When a new transaction gets added to the list of ``` current_transactions ``` of a Lakichain object, it is not immediately validated,
+After a transaction has been created and signed with the private key that belongs to the public key of the sender of the transaction, it can
+be added to the list of ``` current_transactions ``` of a Lakichain object. It is not immediately validated (has the address enough balance? etc.),
 it instead is only validated when the mining of a new block is requested, which looks trough all pending transactions, orders them
 by the highest fee first and also removes transactions from ``` current_transactions ``` that are already in the blockchain.
 You can see if a transaction is pending or valid by using the supplied functions.

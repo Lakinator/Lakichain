@@ -54,6 +54,13 @@ impl Block {
         return json;
     }
 
+    pub fn from_json(json: &String) -> Result<Block, String> {
+        match serde_json::from_str::<Block>(json.as_str()) {
+            Ok(bl) => return Ok(bl),
+            Err(_) => return Err(String::from("Error while parsing json")),
+        }
+    }
+
     pub fn as_string(&self) -> String {
         let mut tx_data = String::new();
         for tx in &self.transactions {

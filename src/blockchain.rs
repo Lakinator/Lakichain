@@ -117,7 +117,7 @@ impl Lakichain {
     /// ```
     /// use lakichain::{Lakichain, crypto};
     /// let private_key_miner = crypto::gen_ed25519_keypair();
-    /// let public_key_miner = crypto::ed25519_public_key(&private_key_miner);
+    /// let public_key_miner = crypto::ed25519_public_key(&private_key_miner).unwrap();
     ///
     /// let mut lchain = Lakichain::new();
     /// lchain.init();
@@ -218,10 +218,10 @@ impl Lakichain {
     }
 
     ///
-    /// Returns a new transaction with a signature
+    /// Returns a new transaction with a signature that can be passed to ``` add_transaction ``` to add it to the pool of transactions
     /// - Signs the transaction with the given ``` private_key ```
     /// - Note: private_key needs to belong to the sender (public key) of the transaction
-    /// - ``` Ok() ``` -> Returns ``` (Transaction, String) ```, so the transaction and the signature as a string
+    /// - ``` Ok() ``` -> Returns a new transaction that can be added to the pool of transactions with ``` add_transaction ```
     /// - ``` Err() ``` -> Returns an error message
     ///
     /// ## Example
@@ -229,16 +229,16 @@ impl Lakichain {
     /// use lakichain::{Lakichain, crypto};
     ///
     /// let private_key_1 = crypto::gen_ed25519_keypair();
-    /// let public_key_1 = crypto::ed25519_public_key(&private_key_1);
+    /// let public_key_1 = crypto::ed25519_public_key(&private_key_1).unwrap();
     /// let private_key_2 = crypto::gen_ed25519_keypair();
-    /// let public_key_2 = crypto::ed25519_public_key(&private_key_2);
+    /// let public_key_2 = crypto::ed25519_public_key(&private_key_2).unwrap();
     ///
     /// let mut lchain = Lakichain::new();
     /// lchain.init();
     ///
     /// match Lakichain::new_transaction(&public_key_1, &public_key_2, &String::from("Address 1 sends 5 $laki to Address 2 with a fee of 1 $laki"), 5, 1, &private_key_1) {
-    ///     Ok((transaction, signature)) => {
-    ///         let success = lchain.add_transaction(&transaction, &signature);
+    ///     Ok(transaction) => {
+    ///         let success = lchain.add_transaction(&transaction);
     ///         println!("Successfully added transaction to pool? -> {}", success);
     ///     },
     ///     Err(e) => println!("Error: {}", e),
@@ -252,27 +252,27 @@ impl Lakichain {
         amount: Lakicoin,
         fee: Lakicoin,
         private_key: &String,
-    ) -> Result<(Transaction, String), String> {
-        let new_tx = Transaction::new(
+    ) -> Result<Transaction, String> {
+        return Transaction::with_signature(
             sender.clone(),
             recipient.clone(),
             message.clone(),
             amount,
             fee,
+            private_key,
         );
-
-        match crypto::ed25519_sign_transaction(&private_key, &new_tx) {
-            Ok(sig) => return Ok((new_tx, sig)),
-            Err(e) => return Err(e),
-        };
     }
 
     ///
     /// Adds a transaction to the current transaction pool
     /// - Returns true if the signature is valid and it got added to the transaction pool
     ///
-    pub fn add_transaction(&mut self, transaction: &Transaction, signature: &String) -> bool {
-        let valid = crypto::ed25519_verify_transaction(&transaction.sender, transaction, signature);
+    pub fn add_transaction(&mut self, transaction: &Transaction) -> bool {
+        let valid = crypto::ed25519_verify_transaction(
+            &transaction.sender,
+            transaction,
+            &transaction.signature,
+        );
 
         if valid {
             self.current_transactions.push(transaction.clone());
@@ -293,6 +293,7 @@ impl Lakichain {
     /// - Valid addresses?
     /// - Enough balance?
     /// - Transaction already on the chain?
+    /// - Includes valid signature?
     /// - open_txs -> checks additional transactions for balance
     ///
     fn validate_transaction(&self, tx: &Transaction, open_txs: &Vec<Transaction>) -> bool {
@@ -303,6 +304,7 @@ impl Lakichain {
         if !Lakichain::validate_address(sender)
             || !Lakichain::validate_address(recipient)
             || self.chain_contains_transaction(tx)
+            || !crypto::ed25519_verify_transaction(&tx.sender, tx, &tx.signature)
         {
             _valid = false;
         } else {
@@ -313,11 +315,6 @@ impl Lakichain {
             Lakichain::balance_from_tx(&mut _sender_balance, open_txs, sender);
 
             _valid = _sender_balance >= amount;
-
-            println!(
-                "{} has {} $laki and sends {} $laki (excl. fee: {} $laki) to {}\n-> valid: {}",
-                sender, _sender_balance, tx.amount, tx.fee, recipient, _valid
-            );
         }
 
         return _valid;
@@ -452,6 +449,18 @@ impl Lakichain {
     pub fn to_json(&self) -> String {
         let json = serde_json::to_string(self).expect("JSON error");
         return json;
+    }
+
+    ///
+    /// Returns a Lakichain from a json string
+    /// - ``` Ok ``` -> Lakichain
+    /// - ``` Err ``` -> error message
+    ///
+    pub fn from_json(json: &String) -> Result<Lakichain, String> {
+        match serde_json::from_str::<Lakichain>(json.as_str()) {
+            Ok(chain) => return Ok(chain),
+            Err(_) => return Err(String::from("Error while parsing json")),
+        }
     }
 
     ///

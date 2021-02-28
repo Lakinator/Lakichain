@@ -14,7 +14,7 @@ use ring::{
 /// use lakichain::{Lakichain, Transaction, crypto};
 ///
 /// let private_key = crypto::gen_ed25519_keypair();
-/// let public_key = crypto::ed25519_public_key(&private_key);
+/// let public_key = crypto::ed25519_public_key(&private_key).unwrap();
 ///
 /// let transaction = Transaction::new(
 ///     public_key.clone(),
@@ -54,15 +54,20 @@ pub fn gen_ed25519_keypair() -> String {
 ///
 /// Extracts the public key encoded as a hex string from a pkcs8 private key
 ///
-pub fn ed25519_public_key(private_key: &String) -> String {
-    let pkcs8_bytes = hex::decode(private_key).unwrap();
+pub fn ed25519_public_key(private_key: &String) -> Result<String, String> {
+    let pkcs8_bytes = match hex::decode(private_key) {
+        Ok(bytes) => bytes,
+        Err(_) => return Err(String::from("Invalid private key")),
+    };
 
-    let key_pair = signature::Ed25519KeyPair::from_pkcs8(&pkcs8_bytes)
-        .expect("Error during public key generation");
+    let key_pair = match signature::Ed25519KeyPair::from_pkcs8(&pkcs8_bytes) {
+        Ok(pair_bytes) => pair_bytes,
+        Err(_) => return Err(String::from("Error during public key generation")),
+    };
 
     let public_key = hex::encode(key_pair.public_key().as_ref());
 
-    return public_key;
+    return Ok(public_key);
 }
 
 ///
@@ -72,29 +77,37 @@ pub fn ed25519_public_key(private_key: &String) -> String {
 /// - ``` Err -> ``` Returns an error message
 ///
 pub fn ed25519_sign_transaction(private_key: &String, tx: &Transaction) -> Result<String, String> {
-    let public_key = ed25519_public_key(private_key);
+    let public_key = match ed25519_public_key(private_key) {
+        Ok(key) => key,
+        Err(e) => return Err(e),
+    };
 
     if public_key != tx.sender {
         return Err(String::from("Sender doesn't belong to private key"));
     }
 
-    return Ok(ed25519_sign(private_key, &tx.as_string()));
+    return ed25519_sign(private_key, &tx.as_string());
 }
 
 ///
 /// Returns a signed message encoded as a hex string with a pkcs8 private key
 ///
-fn ed25519_sign(private_key: &String, message: &String) -> String {
-    let pkcs8_bytes = hex::decode(private_key).unwrap();
+fn ed25519_sign(private_key: &String, message: &String) -> Result<String, String> {
+    let pkcs8_bytes = match hex::decode(private_key) {
+        Ok(bytes) => bytes,
+        Err(_) => return Err(String::from("Invalid private key")),
+    };
 
-    let key_pair = signature::Ed25519KeyPair::from_pkcs8(&pkcs8_bytes)
-        .expect("Error during public key generation");
+    let key_pair = match signature::Ed25519KeyPair::from_pkcs8(&pkcs8_bytes) {
+        Ok(pair_bytes) => pair_bytes,
+        Err(_) => return Err(String::from("Error during public key generation")),
+    };
 
     let signed = key_pair.sign(message.as_str().as_bytes());
 
     let signed = hex::encode(signed.as_ref());
 
-    return signed;
+    return Ok(signed);
 }
 
 ///
@@ -118,8 +131,14 @@ pub fn ed25519_verify_transaction(
 /// Verifies that a message and it's signature belong to this public key
 ///
 fn ed25519_verify(public_key: &String, message: &String, signature: &String) -> bool {
-    let public_key_bytes = hex::decode(public_key).unwrap();
-    let signature_bytes = hex::decode(signature).unwrap();
+    let public_key_bytes = match hex::decode(public_key) {
+        Ok(bytes) => bytes,
+        Err(_) => return false,
+    };
+    let signature_bytes = match hex::decode(signature) {
+        Ok(bytes) => bytes,
+        Err(_) => return false,
+    };
 
     let verifier = signature::UnparsedPublicKey::new(&signature::ED25519, public_key_bytes);
 

@@ -9,9 +9,9 @@ mod tests {
     #[test]
     fn it_works() {
         let private_key_miner = crypto::gen_ed25519_keypair();
-        let public_key_miner = crypto::ed25519_public_key(&private_key_miner);
+        let public_key_miner = crypto::ed25519_public_key(&private_key_miner).unwrap();
         let private_key_lukas = crypto::gen_ed25519_keypair();
-        let public_key_lukas = crypto::ed25519_public_key(&private_key_lukas);
+        let public_key_lukas = crypto::ed25519_public_key(&private_key_lukas).unwrap();
 
         let mut lchain = Lakichain::new();
         lchain.init();
@@ -34,8 +34,9 @@ mod tests {
             1,
             &private_key_miner,
         ) {
-            Ok((transaction, signature)) => {
-                lchain.add_transaction(&transaction, &signature);
+            Ok(transaction) => {
+                lchain.add_transaction(&transaction);
+                lchain.chain_contains_transaction(&transaction);
             }
             Err(e) => println!("Error: {}", e),
         };
